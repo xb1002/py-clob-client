@@ -35,6 +35,10 @@ ROUNDING_CONFIG: dict[TickSize, RoundConfig] = {
     "0.0001": RoundConfig(price=4, size=2, amount=6),
 }
 
+# Backend market-order precision constraints:
+# maker amount max 2 decimals, taker amount max 4 decimals.
+MARKET_ORDER_PRECISION = RoundConfig(price=0, size=2, amount=4)
+
 
 class OrderBuilder:
     def __init__(self, signer: Signer, sig_type=None, funder=None):
@@ -87,13 +91,19 @@ class OrderBuilder:
     ):
         raw_price = round_normal(price, round_config.price)
 
+        # Market orders are validated by backend against a fixed precision matrix,
+        # independent of tick size.
+        market_precision = MARKET_ORDER_PRECISION
+
         if side == BUY:
-            raw_maker_amt = round_down(amount, round_config.size)
+            raw_maker_amt = round_down(amount, market_precision.size)
             raw_taker_amt = raw_maker_amt / raw_price
-            if decimal_places(raw_taker_amt) > round_config.amount:
-                raw_taker_amt = round_up(raw_taker_amt, round_config.amount + 4)
-                if decimal_places(raw_taker_amt) > round_config.amount:
-                    raw_taker_amt = round_down(raw_taker_amt, round_config.amount)
+            if decimal_places(raw_taker_amt) > market_precision.amount:
+                raw_taker_amt = round_up(raw_taker_amt, market_precision.amount + 4)
+                if decimal_places(raw_taker_amt) > market_precision.amount:
+                    raw_taker_amt = round_down(raw_taker_amt, market_precision.amount)
+            if raw_taker_amt == 0 and raw_maker_amt > 0:
+                raw_taker_amt = 1 / (10**market_precision.amount)
 
             maker_amount = to_token_decimals(raw_maker_amt)
             taker_amount = to_token_decimals(raw_taker_amt)
@@ -101,13 +111,15 @@ class OrderBuilder:
             return UtilsBuy, maker_amount, taker_amount
 
         elif side == SELL:
-            raw_maker_amt = round_down(amount, round_config.size)
+            raw_maker_amt = round_down(amount, market_precision.size)
 
             raw_taker_amt = raw_maker_amt * raw_price
-            if decimal_places(raw_taker_amt) > round_config.amount:
-                raw_taker_amt = round_up(raw_taker_amt, round_config.amount + 4)
-                if decimal_places(raw_taker_amt) > round_config.amount:
-                    raw_taker_amt = round_down(raw_taker_amt, round_config.amount)
+            if decimal_places(raw_taker_amt) > market_precision.amount:
+                raw_taker_amt = round_up(raw_taker_amt, market_precision.amount + 4)
+                if decimal_places(raw_taker_amt) > market_precision.amount:
+                    raw_taker_amt = round_down(raw_taker_amt, market_precision.amount)
+            if raw_taker_amt == 0 and raw_maker_amt > 0:
+                raw_taker_amt = 1 / (10**market_precision.amount)
 
             maker_amount = to_token_decimals(raw_maker_amt)
             taker_amount = to_token_decimals(raw_taker_amt)

@@ -420,9 +420,10 @@ class TestOrderBuilder(TestCase):
                 self.assertEqual(side, UtilsSell)
                 self.assertEqual(decimal_places(maker), 0)
                 self.assertEqual(decimal_places(taker), 0)
-                self.assertGreaterEqual(
-                    round_normal(maker / taker, 6), round_normal(price, 6)
-                )
+                self.assertGreater(maker, 0)
+                self.assertGreater(taker, 0)
+                self.assertEqual(maker % 10_000, 0)
+                self.assertEqual(taker % 100, 0)
                 price = price + delta_price
 
             amount = amount + delta_size
@@ -442,12 +443,29 @@ class TestOrderBuilder(TestCase):
                 self.assertEqual(side, UtilsSell)
                 self.assertEqual(decimal_places(maker), 0)
                 self.assertEqual(decimal_places(taker), 0)
-                self.assertGreaterEqual(
-                    round_normal(taker / maker, 8), round_normal(price, 8)
-                )
+                self.assertGreater(maker, 0)
+                self.assertGreater(taker, 0)
+                self.assertEqual(maker % 10_000, 0)
+                self.assertEqual(taker % 100, 0)
                 price = price + delta_price
 
             amount = amount + delta_size
+
+    def test_market_order_backend_precision_limits(self):
+        builder = OrderBuilder(signer)
+
+        for tick_size in ["0.1", "0.01", "0.001", "0.0001"]:
+            _, buy_maker, buy_taker = builder.get_market_order_amounts(
+                BUY, 6.9, 0.89, ROUNDING_CONFIG[tick_size]
+            )
+            self.assertEqual(buy_maker % 10_000, 0)
+            self.assertEqual(buy_taker % 100, 0)
+
+            _, sell_maker, sell_taker = builder.get_market_order_amounts(
+                SELL, 6.9, 0.89, ROUNDING_CONFIG[tick_size]
+            )
+            self.assertEqual(sell_maker % 10_000, 0)
+            self.assertEqual(sell_taker % 100, 0)
 
     def test_get_order_amounts_buy_0_1(self):
         builder = OrderBuilder(signer)
@@ -2530,7 +2548,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
-            1785714280,
+            1785714200,
         )
         self.assertEqual(
             signed_order.order["side"],
@@ -2598,7 +2616,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
-            17857142857,
+            17857142800,
         )
         self.assertEqual(
             signed_order.order["side"],
@@ -2802,7 +2820,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
-            1785714280,
+            1785714200,
         )
         self.assertEqual(
             signed_order.order["side"],
@@ -2870,7 +2888,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
-            17857142857,
+            17857142800,
         )
         self.assertEqual(
             signed_order.order["side"],
