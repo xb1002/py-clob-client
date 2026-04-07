@@ -522,7 +522,8 @@ class ClobClient:
 
         # fee rate
         fee_rate_bps = self.__resolve_fee_rate(
-            order_args.token_id, order_args.fee_rate_bps
+            order_args.token_id,
+            options.fee_rate_bps if options and options.fee_rate_bps is not None else order_args.fee_rate_bps,
         )
         order_args.fee_rate_bps = fee_rate_bps
 
@@ -577,7 +578,8 @@ class ClobClient:
 
         # fee rate
         fee_rate_bps = self.__resolve_fee_rate(
-            order_args.token_id, order_args.fee_rate_bps
+            order_args.token_id,
+            options.fee_rate_bps if options and options.fee_rate_bps is not None else order_args.fee_rate_bps,
         )
         order_args.fee_rate_bps = fee_rate_bps
 
