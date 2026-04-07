@@ -1,4 +1,6 @@
 from eth_account import Account
+from eth_utils import decode_hex
+from eth_keys import keys
 
 
 class Signer:
@@ -7,6 +9,7 @@ class Signer:
 
         self.private_key = private_key
         self.account = Account.from_key(private_key)
+        self._private_key = keys.PrivateKey(decode_hex(private_key))
         self.chain_id = chain_id
 
     def address(self):
@@ -19,4 +22,14 @@ class Signer:
         """
         Signs a message hash
         """
-        return Account._sign_hash(message_hash, self.private_key).signature.hex()
+        if isinstance(message_hash, str):
+            message_hash = decode_hex(message_hash)
+
+        signature = self._private_key.sign_msg_hash(message_hash)
+        v = signature.v + 27
+
+        return (
+            signature.r.to_bytes(32, byteorder="big")
+            + signature.s.to_bytes(32, byteorder="big")
+            + bytes([v])
+        ).hex()
