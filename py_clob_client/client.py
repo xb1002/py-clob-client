@@ -499,9 +499,10 @@ class ClobClient:
         self.assert_level_1_auth()
 
         # add resolve_order_options, or similar
-        tick_size = self.__resolve_tick_size(
-            order_args.token_id,
-            options.tick_size if options else None,
+        tick_size = (
+            options.tick_size
+            if options and options.tick_size is not None
+            else self.get_tick_size(order_args.token_id)
         )
 
         if not price_valid(order_args.price, tick_size):
@@ -521,9 +522,10 @@ class ClobClient:
         )
 
         # fee rate
-        fee_rate_bps = self.__resolve_fee_rate(
-            order_args.token_id,
-            options.fee_rate_bps if options and options.fee_rate_bps is not None else order_args.fee_rate_bps,
+        fee_rate_bps = (
+            options.fee_rate_bps
+            if options and options.fee_rate_bps is not None
+            else self.__resolve_fee_rate(order_args.token_id)
         )
         order_args.fee_rate_bps = fee_rate_bps
 
@@ -547,9 +549,10 @@ class ClobClient:
         self.assert_level_1_auth()
 
         # add resolve_order_options, or similar
-        tick_size = self.__resolve_tick_size(
-            order_args.token_id,
-            options.tick_size if options else None,
+        tick_size = (
+            options.tick_size
+            if options and options.tick_size is not None
+            else self.get_tick_size(order_args.token_id)
         )
 
         if order_args.price is None or order_args.price <= 0:
@@ -577,9 +580,10 @@ class ClobClient:
         )
 
         # fee rate
-        fee_rate_bps = self.__resolve_fee_rate(
-            order_args.token_id,
-            options.fee_rate_bps if options and options.fee_rate_bps is not None else order_args.fee_rate_bps,
+        fee_rate_bps = (
+            options.fee_rate_bps
+            if options and options.fee_rate_bps is not None
+            else self.__resolve_fee_rate(order_args.token_id)
         )
         order_args.fee_rate_bps = fee_rate_bps
 
