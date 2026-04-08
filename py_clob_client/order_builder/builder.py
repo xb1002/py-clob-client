@@ -39,6 +39,10 @@ ROUNDING_CONFIG: dict[TickSize, RoundConfig] = {
 # maker amount max 2 decimals, taker amount max 4 decimals.
 MARKET_ORDER_PRECISION = RoundConfig(price=0, size=2, amount=4)
 
+# Coarse fallback applied to all BUY limit orders:
+# maker amount max 2 decimals, taker amount max 4 decimals.
+BUY_LIMIT_ORDER_PRECISION = RoundConfig(price=0, size=4, amount=2)
+
 
 class OrderBuilder:
     def __init__(self, signer: Signer, sig_type=None, funder=None):
@@ -58,13 +62,11 @@ class OrderBuilder:
         raw_price = round_normal(price, round_config.price)
 
         if side == BUY:
-            raw_taker_amt = round_down(size, round_config.size)
-
-            raw_maker_amt = raw_taker_amt * raw_price
-            if decimal_places(raw_maker_amt) > round_config.amount:
-                raw_maker_amt = round_up(raw_maker_amt, round_config.amount + 4)
-                if decimal_places(raw_maker_amt) > round_config.amount:
-                    raw_maker_amt = round_down(raw_maker_amt, round_config.amount)
+            raw_taker_amt = round_down(size, BUY_LIMIT_ORDER_PRECISION.size)
+            raw_maker_amt = round_up(
+                raw_taker_amt * raw_price,
+                BUY_LIMIT_ORDER_PRECISION.amount,
+            )
 
             maker_amount = to_token_decimals(raw_maker_amt)
             taker_amount = to_token_decimals(raw_taker_amt)

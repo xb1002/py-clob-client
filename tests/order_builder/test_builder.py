@@ -684,6 +684,27 @@ class TestOrderBuilder(TestCase):
             3600000,
         )
 
+    def test_create_order_buy_uses_coarse_precision_constraints(self):
+        builder = OrderBuilder(signer)
+
+        signed_order = builder.create_order(
+            order_args=OrderArgs(
+                token_id="123",
+                price=0.11,
+                size=10.1,
+                side=BUY,
+            ),
+            options=CreateOrderOptions(tick_size="0.01", neg_risk=False),
+        )
+        self.assertEqual(
+            signed_order.order["makerAmount"],
+            1120000,
+        )
+        self.assertEqual(
+            signed_order.order["takerAmount"],
+            10100000,
+        )
+
         # BUY
         signed_order = builder.create_order(
             order_args=OrderArgs(
@@ -734,11 +755,11 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            9999600,
+            10000000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
-            12820000,
+            12820400,
         )
 
         # SELL
@@ -810,13 +831,13 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            10575331400,
+            10575340000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
             18233330000,
         )
-        self.assertEqual(
+        self.assertGreaterEqual(
             signed_order.order["makerAmount"] / signed_order.order["takerAmount"], 0.58
         )
 
@@ -925,7 +946,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            11782400,
+            11790000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
@@ -952,7 +973,7 @@ class TestOrderBuilder(TestCase):
             EOA,
         )
         self.assertIsNotNone(signed_order.signature)
-        self.assertEqual(
+        self.assertGreaterEqual(
             float(signed_order.order["makerAmount"])
             / float(signed_order.order["takerAmount"]),
             0.56,
@@ -994,7 +1015,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            1178240,
+            1180000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
@@ -1021,7 +1042,7 @@ class TestOrderBuilder(TestCase):
             EOA,
         )
         self.assertIsNotNone(signed_order.signature)
-        self.assertEqual(
+        self.assertGreaterEqual(
             float(signed_order.order["makerAmount"])
             / float(signed_order.order["takerAmount"]),
             0.056,
@@ -1063,7 +1084,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            117824,
+            120000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
@@ -1090,7 +1111,7 @@ class TestOrderBuilder(TestCase):
             EOA,
         )
         self.assertIsNotNone(signed_order.signature)
-        self.assertEqual(
+        self.assertGreaterEqual(
             float(signed_order.order["makerAmount"])
             / float(signed_order.order["takerAmount"]),
             0.0056,
@@ -1463,11 +1484,11 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            9999600,
+            10000000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
-            12820000,
+            12820400,
         )
 
         # SELL
@@ -1539,13 +1560,13 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            10575331400,
+            10575340000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
             18233330000,
         )
-        self.assertEqual(
+        self.assertGreaterEqual(
             signed_order.order["makerAmount"] / signed_order.order["takerAmount"], 0.58
         )
 
@@ -1654,7 +1675,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            11782400,
+            11790000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
@@ -1681,7 +1702,7 @@ class TestOrderBuilder(TestCase):
             EOA,
         )
         self.assertIsNotNone(signed_order.signature)
-        self.assertEqual(
+        self.assertGreaterEqual(
             float(signed_order.order["makerAmount"])
             / float(signed_order.order["takerAmount"]),
             0.56,
@@ -1723,7 +1744,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            1178240,
+            1180000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
@@ -1750,7 +1771,7 @@ class TestOrderBuilder(TestCase):
             EOA,
         )
         self.assertIsNotNone(signed_order.signature)
-        self.assertEqual(
+        self.assertGreaterEqual(
             float(signed_order.order["makerAmount"])
             / float(signed_order.order["takerAmount"]),
             0.056,
@@ -1792,7 +1813,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order.order["makerAmount"],
-            117824,
+            120000,
         )
         self.assertEqual(
             signed_order.order["takerAmount"],
@@ -1819,7 +1840,7 @@ class TestOrderBuilder(TestCase):
             EOA,
         )
         self.assertIsNotNone(signed_order.signature)
-        self.assertEqual(
+        self.assertGreaterEqual(
             float(signed_order.order["makerAmount"])
             / float(signed_order.order["takerAmount"]),
             0.0056,
@@ -2141,7 +2162,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order_dict["makerAmount"],
-            "11782400",
+            "11790000",
         )
         self.assertEqual(
             signed_order_dict["takerAmount"],
@@ -2277,7 +2298,7 @@ class TestOrderBuilder(TestCase):
         )
         self.assertEqual(
             signed_order_dict["makerAmount"],
-            "11782400",
+            "11790000",
         )
         self.assertEqual(
             signed_order_dict["takerAmount"],
