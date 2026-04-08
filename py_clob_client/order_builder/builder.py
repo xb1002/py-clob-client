@@ -35,6 +35,8 @@ ROUNDING_CONFIG: dict[TickSize, RoundConfig] = {
     "0.0001": RoundConfig(price=4, size=2, amount=6),
 }
 
+_SIGNER_WARM_UP_HASH = b"\x00" * 32
+
 # Backend market-order precision constraints:
 # maker amount max 2 decimals, taker amount max 4 decimals.
 MARKET_ORDER_PRECISION = RoundConfig(price=0, size=2, amount=4)
@@ -55,6 +57,31 @@ class OrderBuilder:
         # Used for Polymarket proxy wallets and other smart contract wallets
         # Defaults to the address of the signer
         self.funder = funder if funder is not None else self.signer.address()
+        self._utils_signer = UtilsSigner(key=self.signer.private_key)
+        self._utils_order_builders: dict[bool, UtilsOrderBuilder] = {}
+        self._warm_up_utils_signer()
+
+    def _warm_up_utils_signer(self) -> None:
+        for neg_risk in [False, True]:
+            self._get_utils_order_builder(neg_risk)
+
+        self._utils_signer.sign(_SIGNER_WARM_UP_HASH)
+
+    def _get_utils_order_builder(self, neg_risk: bool) -> UtilsOrderBuilder:
+        neg_risk_key = bool(neg_risk)
+        order_builder = self._utils_order_builders.get(neg_risk_key)
+        if order_builder is None:
+            contract_config = get_contract_config(
+                self.signer.get_chain_id(),
+                neg_risk_key,
+            )
+            order_builder = UtilsOrderBuilder(
+                contract_config.exchange,
+                self.signer.get_chain_id(),
+                self._utils_signer,
+            )
+            self._utils_order_builders[neg_risk_key] = order_builder
+        return order_builder
 
     def get_order_amounts(
         self, side: str, size: float, price: float, round_config: RoundConfig
@@ -157,17 +184,7 @@ class OrderBuilder:
             signatureType=self.sig_type,
         )
 
-        contract_config = get_contract_config(
-            self.signer.get_chain_id(), options.neg_risk
-        )
-
-        order_builder = UtilsOrderBuilder(
-            contract_config.exchange,
-            self.signer.get_chain_id(),
-            UtilsSigner(key=self.signer.private_key),
-        )
-
-        return order_builder.build_signed_order(data)
+        return self._get_utils_order_builder(options.neg_risk).build_signed_order(data)
 
     def create_market_order(
         self, order_args: MarketOrderArgs, options: CreateOrderOptions
@@ -196,17 +213,7 @@ class OrderBuilder:
             signatureType=self.sig_type,
         )
 
-        contract_config = get_contract_config(
-            self.signer.get_chain_id(), options.neg_risk
-        )
-
-        order_builder = UtilsOrderBuilder(
-            contract_config.exchange,
-            self.signer.get_chain_id(),
-            UtilsSigner(key=self.signer.private_key),
-        )
-
-        return order_builder.build_signed_order(data)
+        return self._get_utils_order_builder(options.neg_risk).build_signed_order(data)
 
     def calculate_buy_market_price(
         self,

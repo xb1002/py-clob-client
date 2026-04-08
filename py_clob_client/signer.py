@@ -1,7 +1,9 @@
 from eth_account import Account
 from eth_utils import decode_hex
-from eth_keys import keys
+from eth_keys import KeyAPI
+from eth_keys.backends import CoinCurveECCBackend
 
+_fast_keys = KeyAPI(CoinCurveECCBackend)
 
 class Signer:
     def __init__(self, private_key: str, chain_id: int):
@@ -9,7 +11,7 @@ class Signer:
 
         self.private_key = private_key
         self.account = Account.from_key(private_key)
-        self._private_key = keys.PrivateKey(decode_hex(private_key))
+        self._private_key = _fast_keys.PrivateKey(decode_hex(private_key))
         self.chain_id = chain_id
 
     def address(self):

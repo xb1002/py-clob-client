@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import patch
 
 from py_clob_client.clob_types import (
     OrderArgs,
@@ -27,6 +28,93 @@ signer = Signer(private_key=private_key, chain_id=chain_id)
 
 
 class TestOrderBuilder(TestCase):
+    def test_reuses_utils_signer_and_order_builder(self):
+        signer_inits = []
+        signer_signs = []
+        builder_inits = []
+        signed_orders = []
+
+        class FakeUtilsSigner:
+            def __init__(self, key):
+                signer_inits.append(key)
+
+            def sign(self, struct_hash):
+                signer_signs.append(struct_hash)
+                return "sig"
+
+        class FakeUtilsOrderBuilder:
+            def __init__(self, exchange, chain_id, signer):
+                builder_inits.append((exchange, chain_id, signer))
+
+            def build_signed_order(self, data):
+                signed_orders.append(data)
+                return data
+
+        class FakeContractConfig:
+            def __init__(self, exchange):
+                self.exchange = exchange
+
+        with (
+            patch(
+                "py_clob_client.order_builder.builder.UtilsSigner",
+                FakeUtilsSigner,
+            ),
+            patch(
+                "py_clob_client.order_builder.builder.UtilsOrderBuilder",
+                FakeUtilsOrderBuilder,
+            ),
+            patch(
+                "py_clob_client.order_builder.builder.get_contract_config",
+                side_effect=lambda _chain_id, neg_risk: FakeContractConfig(
+                    f"exchange-{neg_risk}",
+                ),
+            ),
+        ):
+            builder = OrderBuilder(signer)
+
+            builder.create_order(
+                order_args=OrderArgs(
+                    side=BUY,
+                    token_id="123",
+                    price=0.5,
+                    size=10,
+                    fee_rate_bps=111,
+                    nonce=123,
+                    expiration=123,
+                ),
+                options=CreateOrderOptions(tick_size="0.01", neg_risk=False),
+            )
+            builder.create_market_order(
+                order_args=MarketOrderArgs(
+                    side=BUY,
+                    token_id="123",
+                    price=0.5,
+                    amount=10,
+                    fee_rate_bps=111,
+                    nonce=123,
+                ),
+                options=CreateOrderOptions(tick_size="0.01", neg_risk=False),
+            )
+            builder.create_order(
+                order_args=OrderArgs(
+                    side=BUY,
+                    token_id="123",
+                    price=0.5,
+                    size=10,
+                    fee_rate_bps=111,
+                    nonce=123,
+                    expiration=123,
+                ),
+                options=CreateOrderOptions(tick_size="0.01", neg_risk=True),
+            )
+
+        self.assertEqual(signer_inits, [private_key])
+        self.assertEqual(signer_signs, [b"\x00" * 32])
+        self.assertEqual(len(builder_inits), 2)
+        self.assertEqual(builder_inits[0][0], "exchange-False")
+        self.assertEqual(builder_inits[1][0], "exchange-True")
+        self.assertEqual(len(signed_orders), 3)
+
     def test_calculate_buy_market_price_FOK(self):
         # empty
         with self.assertRaises(Exception):
