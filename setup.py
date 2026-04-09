@@ -22,6 +22,7 @@ setuptools.setup(
         "python-dotenv",
         "py-builder-signing-sdk>=0.0.2",
         "httpx[http2]>=0.27.0",
+        "coincurve>=21.0.0",
     ],
     project_urls={
         "Bug Tracker": "https://github.com/Polymarket/py-clob-client/issues",
